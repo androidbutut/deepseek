@@ -2,7 +2,7 @@ class ThreeAIFrontend {
     constructor() {
         this.currentChat = [];
         this.isLoading = false;
-        this.backendUrl = 'https://your-worker.your-account.workers.dev';
+        this.backendUrl = 'https://three-ai-backend.androidbutut.workers.dev';
         
         this.initializeEventListeners();
         this.autoResizeTextarea();
