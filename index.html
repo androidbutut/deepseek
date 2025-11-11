@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepSeek Coder Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .chat-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: #2d3748;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chat-header h1 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            opacity: 0.8;
+            font-size: 0.9em;
+        }
+
+        .chat-messages {
+            height: 500px;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f7fafc;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .user-message {
+            text-align: right;
+        }
+
+        .ai-message {
+            text-align: left;
+        }
+
+        .message-bubble {
+            display: inline-block;
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+
+        .user-message .message-bubble {
+            background: #4299e1;
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .ai-message .message-bubble {
+            background: white;
+            color: #2d3748;
+            border: 1px solid #e2e8f0;
+            border-bottom-left-radius: 5px;
+        }
+
+        .reasoning {
+            font-size: 0.85em;
+            color: #718096;
+            margin-top: 8px;
+            font-style: italic;
+            line-height: 1.4;
+        }
+
+        .code-block {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 10px;
+        }
+
+        #chatInput {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #cbd5e0;
+            border-radius: 25px;
+            outline: none;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        #chatInput:focus {
+            border-color: #4299e1;
+        }
+
+        #sendButton {
+            padding: 12px 24px;
+            background: #4299e1;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background 0.3s;
+        }
+
+        #sendButton:hover {
+            background: #3182ce;
+        }
+
+        #sendButton:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 10px 16px;
+            color: #718096;
+            font-style: italic;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Scrollbar styling */
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 3px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>🤖 DeepSeek Coder Chat</h1>
+            <p>Chat dengan AI untuk bantuan coding & project building</p>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <!-- Messages will appear here -->
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+            AI sedang mengetik...
+        </div>
+
+        <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+                <input 
+                    type="text" 
+                    id="chatInput" 
+                    placeholder="Ketik pertanyaan coding atau project request..."
+                    autocomplete="off"
+                >
+                <button id="sendButton" onclick="sendMessage()">Kirim</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendButton');
+        const typingIndicator = document.getElementById('typingIndicator');
+
+        const WORKER_URL = 'https://deepseek-builder.androidbutut.workers.dev';
+
+        // Enter key to send message
+        chatInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Auto-focus input
+        chatInput.focus();
+
+        function addMessage(sender, content, reasoning = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'message-bubble';
+            
+            // Process content to detect code blocks
+            const processedContent = processContent(content);
+            bubbleDiv.innerHTML = processedContent;
+            
+            messageDiv.appendChild(bubbleDiv);
+            
+            // Add reasoning if exists
+            if (reasoning) {
+                const reasoningDiv = document.createElement('div');
+                reasoningDiv.className = 'reasoning';
+                reasoningDiv.textContent = reasoning.toLowerCase();
+                messageDiv.appendChild(reasoningDiv);
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function processContent(content) {
+            // Simple code block detection - you can enhance this
+            if (content.includes('```')) {
+                // Very basic code block handling
+                return content.replace(/```(\w+)?\n([\s\S]*?)```/g, 
+                    '<div class="code-block">$2</div>');
+            }
+            
+            // Convert line breaks to <br>
+            return content.replace(/\n/g, '<br>');
+        }
+
+        function showTyping() {
+            typingIndicator.style.display = 'block';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function hideTyping() {
+            typingIndicator.style.display = 'none';
+        }
+
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            // Disable input while processing
+            chatInput.disabled = true;
+            sendButton.disabled = true;
+
+            // Add user message
+            addMessage('user', message);
+            chatInput.value = '';
+
+            // Show typing indicator
+            showTyping();
+
+            try {
+                const response = await fetch(WORKER_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        model: 'deepseek-chat'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Hide typing indicator
+                hideTyping();
+
+                // Add AI response
+                if (data.response) {
+                    addMessage('ai', data.response, data.reasoning);
+                } else if (data.error) {
+                    addMessage('ai', `Maaf, terjadi error: ${data.error}`);
+                } else {
+                    addMessage('ai', 'Maaf, tidak ada response dari server.');
+                }
+
+            } catch (error) {
+                hideTyping();
+                addMessage('ai', `Error: ${error.message}`);
+                console.error('Error:', error);
+            } finally {
+                // Re-enable input
+                chatInput.disabled = false;
+                sendButton.disabled = false;
+                chatInput.focus();
+            }
+        }
+
+        // Add welcome message
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                addMessage('ai', 
+                    `Halo! 👋 Saya DeepSeek AI Assistant. Saya siap membantu Anda dengan:\n\n` +
+                    `💻 **Pemrograman & Coding**\n` +
+                    `🚀 **Project Planning & Structure**\n` +
+                    `🔧 **Debugging & Problem Solving**\n` +
+                    `📚 **Learning & Explanations**\n\n` +
+                    `Silakan tanyakan apa saja! Contoh: "Buatkan function JavaScript untuk validasi email" atau "Rencanakan project React todo app"`
+                );
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
