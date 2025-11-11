@@ -441,62 +441,105 @@
             }, 100);
         }
 
-        async function sendMessage() {
-            const chatInput = document.getElementById('chatInput');
-            const message = chatInput.value.trim();
-            
-            if (!message) return;
+async function sendMessage() {
+    const chatInput = document.getElementById('chatInput');
+    const message = chatInput.value.trim();
+    
+    if (!message) return;
 
-            // Disable input while processing
-            chatInput.disabled = true;
-            document.getElementById('sendButton').disabled = true;
+    // Disable input while processing
+    chatInput.disabled = true;
+    document.getElementById('sendButton').disabled = true;
 
-            // Add user message
-            addMessage('user', message);
-            chatInput.value = '';
+    // Add user message
+    addMessage('user', message);
+    chatInput.value = '';
 
-            // Show typing indicator
-            showTyping();
+    // Show typing indicator
+    showTyping();
 
-            try {
-                const response = await fetch(WORKER_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        message: message,
-                        model: 'deepseek-chat'
-                    })
-                });
+    try {
+        console.log('Sending message to worker:', message);
+        
+        const response = await fetch(WORKER_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message: message,
+                model: 'deepseek-chat'
+            })
+        });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                hideTyping();
-
-                // Add AI response
-                if (data.response) {
-                    addMessage('ai', data.response, data.reasoning);
-                } else if (data.error) {
-                    addMessage('ai', `❌ Maaf, terjadi error: ${data.error}`);
-                } else {
-                    addMessage('ai', '🤔 Maaf, tidak ada response dari server.');
-                }
-
-            } catch (error) {
-                hideTyping();
-                addMessage('ai', `❌ Error: ${error.message}`);
-                console.error('Error:', error);
-            } finally {
-                // Re-enable input
-                chatInput.disabled = false;
-                document.getElementById('sendButton').disabled = false;
-                chatInput.setFocus();
-            }
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Server error:', response.status, errorText);
+            throw new Error(`Server error: ${response.status} - ${errorText}`);
         }
+
+        const data = await response.json();
+        console.log('Response data:', data);
+        
+        hideTyping();
+
+        // Handle different response formats
+        if (data.success) {
+            addMessage('ai', data.response, data.reasoning);
+        } else if (data.error) {
+            addMessage('ai', `❌ Error: ${data.error}${data.details ? `\n\nDetails: ${data.details}` : ''}`);
+        } else {
+            addMessage('ai', '🤔 Response format tidak dikenali dari server.');
+        }
+
+    } catch (error) {
+        hideTyping();
+        console.error('Fetch error:', error);
+        addMessage('ai', `❌ Gagal mengirim pesan: ${error.message}`);
+    } finally {
+        // Re-enable input
+        chatInput.disabled = false;
+        document.getElementById('sendButton').disabled = false;
+        chatInput.setFocus();
+    }
+}
+
+// Test function untuk debug
+async function testConnection() {
+    console.log('Testing connection to worker...');
+    
+    try {
+        const testResponse = await fetch(WORKER_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message: 'Test connection - hello world'
+            })
+        });
+        
+        console.log('Test response status:', testResponse.status);
+        const testData = await testResponse.json();
+        console.log('Test response data:', testData);
+        
+        return testData;
+    } catch (error) {
+        console.error('Test connection failed:', error);
+        return { error: error.message };
+    }
+}
+
+// Panggil test saat load (optional)
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(showWelcomeMessage, 500);
+    setupEventListeners();
+    
+    // Test connection (bisa di-comment jika tidak perlu)
+    // testConnection();
+});
 
         function quickAction(action) {
             const prompts = {
