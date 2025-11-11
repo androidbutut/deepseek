@@ -3,283 +3,453 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DeepSeek Coder Chat</title>
+    <title>DeepSeek AI Coder</title>
+    
+    <!-- Ionic Core v8 -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core@8/dist/ionic/ionic.esm.js"></script>
+    <script nomodule src="https://cdn.jsdelivr.net/npm/@ionic/core@8/dist/ionic/ionic.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core@8/css/ionic.bundle.css">
+    
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
+        :root {
+            --ion-background-color: #1a1b27;
+            --ion-text-color: #ffffff;
+            --ion-color-primary: #5e35b1;
+            --ion-color-secondary: #7e57c2;
+            --ion-color-tertiary: #b388ff;
+            --ion-color-success: #4caf50;
+            --ion-color-warning: #ff9800;
+            --ion-color-danger: #f44336;
         }
 
         .chat-container {
-            max-width: 900px;
+            max-width: 1200px;
             margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            overflow: hidden;
+            height: 100vh;
+            background: var(--ion-background-color);
         }
 
-        .chat-header {
-            background: #2d3748;
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-
-        .chat-header h1 {
-            font-size: 1.5em;
-            margin-bottom: 5px;
-        }
-
-        .chat-header p {
-            opacity: 0.8;
-            font-size: 0.9em;
-        }
-
-        .chat-messages {
-            height: 500px;
+        .message-container {
+            height: calc(100vh - 140px);
             overflow-y: auto;
-            padding: 20px;
-            background: #f7fafc;
-        }
-
-        .message {
-            margin-bottom: 20px;
-            animation: fadeIn 0.3s ease-in;
+            padding: 16px;
         }
 
         .user-message {
-            text-align: right;
+            margin-left: auto;
+            max-width: 80%;
+            margin-bottom: 16px;
         }
 
         .ai-message {
-            text-align: left;
+            margin-right: auto;
+            max-width: 80%;
+            margin-bottom: 16px;
         }
 
         .message-bubble {
-            display: inline-block;
-            max-width: 80%;
             padding: 12px 16px;
-            border-radius: 18px;
-            word-wrap: break-word;
+            border-radius: 20px;
+            line-height: 1.4;
         }
 
-        .user-message .message-bubble {
-            background: #4299e1;
+        .user-bubble {
+            background: var(--ion-color-primary);
             color: white;
-            border-bottom-right-radius: 5px;
+            border-bottom-right-radius: 8px;
         }
 
-        .ai-message .message-bubble {
-            background: white;
-            color: #2d3748;
-            border: 1px solid #e2e8f0;
-            border-bottom-left-radius: 5px;
+        .ai-bubble {
+            background: #2d2d3a;
+            color: white;
+            border-bottom-left-radius: 8px;
+            border: 1px solid #3d3d4a;
         }
 
-        .reasoning {
-            font-size: 0.85em;
-            color: #718096;
+        .reasoning-text {
+            font-size: 0.8em;
+            color: #888;
             margin-top: 8px;
             font-style: italic;
-            line-height: 1.4;
+            line-height: 1.3;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            border-left: 3px solid var(--ion-color-tertiary);
         }
 
         .code-block {
-            background: #1a202c;
-            color: #e2e8f0;
-            padding: 15px;
+            background: #0d1117;
+            border: 1px solid #30363d;
             border-radius: 8px;
-            margin-top: 10px;
+            margin: 8px 0;
             overflow-x: auto;
+        }
+
+        .code-header {
+            background: #161b22;
+            padding: 8px 12px;
+            border-bottom: 1px solid #30363d;
+            font-size: 0.8em;
+            color: #8b949e;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .code-content {
+            padding: 12px;
             font-family: 'Courier New', monospace;
             font-size: 0.9em;
             line-height: 1.4;
+            color: #e6edf3;
+            white-space: pre-wrap;
         }
 
-        .chat-input-container {
-            padding: 20px;
-            background: white;
-            border-top: 1px solid #e2e8f0;
-        }
-
-        .chat-input-wrapper {
-            display: flex;
-            gap: 10px;
-        }
-
-        #chatInput {
-            flex: 1;
-            padding: 12px 16px;
-            border: 1px solid #cbd5e0;
-            border-radius: 25px;
-            outline: none;
-            font-size: 1em;
-            transition: border-color 0.3s;
-        }
-
-        #chatInput:focus {
-            border-color: #4299e1;
-        }
-
-        #sendButton {
-            padding: 12px 24px;
-            background: #4299e1;
-            color: white;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: background 0.3s;
-        }
-
-        #sendButton:hover {
-            background: #3182ce;
-        }
-
-        #sendButton:disabled {
-            background: #a0aec0;
-            cursor: not-allowed;
+        .copy-btn {
+            --padding-start: 8px;
+            --padding-end: 8px;
+            --padding-top: 4px;
+            --padding-bottom: 4px;
+            font-size: 0.7em;
         }
 
         .typing-indicator {
-            display: none;
-            padding: 10px 16px;
-            color: #718096;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            color: #888;
             font-style: italic;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--ion-color-tertiary);
+            border-radius: 50%;
+            animation: typingAnimation 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typingAnimation {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        .welcome-card {
+            background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-secondary));
+            margin: 16px;
+            border-radius: 16px;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 16px 0;
+        }
+
+        .advanced-section {
+            margin: 16px;
+            padding: 16px;
+            background: #2d2d3a;
+            border-radius: 12px;
+            border: 1px solid #3d3d4a;
         }
 
         /* Scrollbar styling */
-        .chat-messages::-webkit-scrollbar {
+        .message-container::-webkit-scrollbar {
             width: 6px;
         }
 
-        .chat-messages::-webkit-scrollbar-track {
-            background: #f1f1f1;
+        .message-container::-webkit-scrollbar-track {
+            background: #2d2d3a;
         }
 
-        .chat-messages::-webkit-scrollbar-thumb {
-            background: #cbd5e0;
+        .message-container::-webkit-scrollbar-thumb {
+            background: var(--ion-color-primary);
             border-radius: 3px;
         }
 
-        .chat-messages::-webkit-scrollbar-thumb:hover {
-            background: #a0aec0;
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .user-message, .ai-message {
+                max-width: 90%;
+            }
+            
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            <h1>🤖 DeepSeek Coder Chat</h1>
-            <p>Chat dengan AI untuk bantuan coding & project building</p>
-        </div>
+    <ion-app>
+        <!-- Header -->
+        <ion-header>
+            <ion-toolbar color="primary">
+                <ion-title>
+                    <ion-icon name="code-slash" slot="start"></ion-icon>
+                    DeepSeek AI Coder
+                </ion-title>
+                <ion-buttons slot="end">
+                    <ion-button id="settings-button">
+                        <ion-icon slot="icon-only" name="settings"></ion-icon>
+                    </ion-button>
+                </ion-buttons>
+            </ion-toolbar>
+        </ion-header>
 
-        <div class="chat-messages" id="chatMessages">
-            <!-- Messages will appear here -->
-        </div>
-
-        <div class="typing-indicator" id="typingIndicator">
-            AI sedang mengetik...
-        </div>
-
-        <div class="chat-input-container">
-            <div class="chat-input-wrapper">
-                <input 
-                    type="text" 
-                    id="chatInput" 
-                    placeholder="Ketik pertanyaan coding atau project request..."
-                    autocomplete="off"
-                >
-                <button id="sendButton" onclick="sendMessage()">Kirim</button>
+        <!-- Main Content -->
+        <ion-content class="chat-container">
+            <!-- Messages Container -->
+            <div class="message-container" id="messageContainer">
+                <!-- Messages will be inserted here -->
             </div>
-        </div>
-    </div>
+
+            <!-- Typing Indicator -->
+            <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                <span>AI sedang berpikir</span>
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <ion-footer>
+                <ion-toolbar>
+                    <ion-grid>
+                        <ion-row>
+                            <ion-col size="10">
+                                <ion-textarea 
+                                    id="chatInput"
+                                    placeholder="Ketik pertanyaan coding atau perintah..."
+                                    rows="1"
+                                    auto-grow="true"
+                                    enterkeyhint="send"
+                                ></ion-textarea>
+                            </ion-col>
+                            <ion-col size="2">
+                                <ion-button 
+                                    id="sendButton" 
+                                    expand="block" 
+                                    color="primary"
+                                    onclick="sendMessage()"
+                                >
+                                    <ion-icon name="send" slot="start"></ion-icon>
+                                    Kirim
+                                </ion-button>
+                            </ion-col>
+                        </ion-row>
+                        
+                        <!-- Quick Action Buttons -->
+                        <ion-row>
+                            <ion-col>
+                                <div class="action-buttons">
+                                    <ion-button size="small" color="secondary" onclick="quickAction('fixError')">
+                                        <ion-icon name="bug" slot="start"></ion-icon>
+                                        Fix Error
+                                    </ion-button>
+                                    <ion-button size="small" color="tertiary" onclick="quickAction('explainCode')">
+                                        <ion-icon name="book" slot="start"></ion-icon>
+                                        Explain Code
+                                    </ion-button>
+                                    <ion-button size="small" color="success" onclick="quickAction('optimize')">
+                                        <ion-icon name="speedometer" slot="start"></ion-icon>
+                                        Optimize
+                                    </ion-button>
+                                    <ion-button size="small" color="warning" onclick="quickAction('generate')">
+                                        <ion-icon name="create" slot="start"></ion-icon>
+                                        Generate Code
+                                    </ion-button>
+                                </div>
+                            </ion-col>
+                        </ion-row>
+                    </ion-grid>
+                </ion-toolbar>
+            </ion-footer>
+        </ion-content>
+    </ion-app>
 
     <script>
-        const chatMessages = document.getElementById('chatMessages');
-        const chatInput = document.getElementById('chatInput');
-        const sendButton = document.getElementById('sendButton');
-        const typingIndicator = document.getElementById('typingIndicator');
-
         const WORKER_URL = 'https://deepseek-builder.androidbutut.workers.dev';
-
-        // Enter key to send message
-        chatInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
+        
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(showWelcomeMessage, 500);
+            setupEventListeners();
         });
 
-        // Auto-focus input
-        chatInput.focus();
+        function setupEventListeners() {
+            const chatInput = document.getElementById('chatInput');
+            const sendButton = document.getElementById('sendButton');
+            
+            // Enter key to send (but Shift+Enter for new line)
+            chatInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            
+            // Auto-focus input
+            chatInput.setFocus();
+        }
+
+        function showWelcomeMessage() {
+            const welcomeHTML = `
+                <div class="ai-message">
+                    <div class="message-bubble ai-bubble">
+                        <ion-card class="welcome-card">
+                            <ion-card-header>
+                                <ion-card-title>👋 Halo! Saya DeepSeek AI</ion-card-title>
+                                <ion-card-subtitle>Assistant coding Anda</ion-card-subtitle>
+                            </ion-card-header>
+                            
+                            <ion-card-content>
+                                <p><strong>Saya bisa membantu dengan:</strong></p>
+                                <ion-list lines="none">
+                                    <ion-item>
+                                        <ion-icon name="bug" slot="start" color="danger"></ion-icon>
+                                        <ion-label>Debug & Fix Errors</ion-label>
+                                    </ion-item>
+                                    <ion-item>
+                                        <ion-icon name="create" slot="start" color="primary"></ion-icon>
+                                        <ion-label>Generate & Explain Code</ion-label>
+                                    </ion-item>
+                                    <ion-item>
+                                        <ion-icon name="speedometer" slot="start" color="success"></ion-icon>
+                                        <ion-label>Optimize Performance</ion-label>
+                                    </ion-item>
+                                    <ion-item>
+                                        <ion-icon name="book" slot="start" color="warning"></ion-icon>
+                                        <ion-label>Code Review & Best Practices</ion-label>
+                                    </ion-item>
+                                </ion-list>
+                                
+                                <ion-text color="medium">
+                                    <p><small>Coba tanyakan: "Buatkan function React untuk fetch data" atau "Bantu fix error JavaScript ini"</small></p>
+                                </ion-text>
+                            </ion-card-content>
+                        </ion-card>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('messageContainer').innerHTML += welcomeHTML;
+            scrollToBottom();
+        }
 
         function addMessage(sender, content, reasoning = null) {
+            const messageContainer = document.getElementById('messageContainer');
+            
             const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${sender}-message`;
+            messageDiv.className = `${sender}-message`;
             
             const bubbleDiv = document.createElement('div');
-            bubbleDiv.className = 'message-bubble';
+            bubbleDiv.className = `message-bubble ${sender}-bubble`;
             
-            // Process content to detect code blocks
-            const processedContent = processContent(content);
-            bubbleDiv.innerHTML = processedContent;
+            // Process content for code blocks and formatting
+            bubbleDiv.innerHTML = formatMessageContent(content);
             
             messageDiv.appendChild(bubbleDiv);
             
             // Add reasoning if exists
             if (reasoning) {
                 const reasoningDiv = document.createElement('div');
-                reasoningDiv.className = 'reasoning';
+                reasoningDiv.className = 'reasoning-text';
                 reasoningDiv.textContent = reasoning.toLowerCase();
                 messageDiv.appendChild(reasoningDiv);
             }
             
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            messageContainer.appendChild(messageDiv);
+            scrollToBottom();
         }
 
-        function processContent(content) {
-            // Simple code block detection - you can enhance this
-            if (content.includes('```')) {
-                // Very basic code block handling
-                return content.replace(/```(\w+)?\n([\s\S]*?)```/g, 
-                    '<div class="code-block">$2</div>');
-            }
+        function formatMessageContent(content) {
+            // Convert code blocks with syntax highlighting
+            let formattedContent = content.replace(/```(\w+)?\n([\s\S]*?)```/g, 
+                function(match, lang, code) {
+                    const language = lang || 'text';
+                    return `
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>${language}</span>
+                                <ion-button class="copy-btn" size="small" fill="clear" onclick="copyToClipboard(this)">
+                                    <ion-icon name="copy" slot="start"></ion-icon>
+                                    Copy
+                                </ion-button>
+                            </div>
+                            <div class="code-content">${escapeHtml(code.trim())}</div>
+                        </div>
+                    `;
+                });
             
-            // Convert line breaks to <br>
-            return content.replace(/\n/g, '<br>');
+            // Convert inline code
+            formattedContent = formattedContent.replace(/`([^`]+)`/g, 
+                '<code style="background: #2d2d3a; padding: 2px 6px; border-radius: 4px; font-family: monospace;">$1</code>');
+            
+            // Convert line breaks
+            formattedContent = formattedContent.replace(/\n/g, '<br>');
+            
+            // Convert bold text
+            formattedContent = formattedContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            return formattedContent;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function copyToClipboard(button) {
+            const codeContent = button.closest('.code-block').querySelector('.code-content').textContent;
+            navigator.clipboard.writeText(codeContent).then(() => {
+                const originalText = button.innerHTML;
+                button.innerHTML = '<ion-icon name="checkmark" slot="start"></ion-icon>Copied!';
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                }, 2000);
+            });
         }
 
         function showTyping() {
-            typingIndicator.style.display = 'block';
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            document.getElementById('typingIndicator').style.display = 'flex';
+            scrollToBottom();
         }
 
         function hideTyping() {
-            typingIndicator.style.display = 'none';
+            document.getElementById('typingIndicator').style.display = 'none';
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById('messageContainer');
+            setTimeout(() => {
+                container.scrollTop = container.scrollHeight;
+            }, 100);
         }
 
         async function sendMessage() {
+            const chatInput = document.getElementById('chatInput');
             const message = chatInput.value.trim();
+            
             if (!message) return;
 
             // Disable input while processing
             chatInput.disabled = true;
-            sendButton.disabled = true;
+            document.getElementById('sendButton').disabled = true;
 
             // Add user message
             addMessage('user', message);
@@ -305,44 +475,49 @@
                 }
 
                 const data = await response.json();
-                
-                // Hide typing indicator
                 hideTyping();
 
                 // Add AI response
                 if (data.response) {
                     addMessage('ai', data.response, data.reasoning);
                 } else if (data.error) {
-                    addMessage('ai', `Maaf, terjadi error: ${data.error}`);
+                    addMessage('ai', `❌ Maaf, terjadi error: ${data.error}`);
                 } else {
-                    addMessage('ai', 'Maaf, tidak ada response dari server.');
+                    addMessage('ai', '🤔 Maaf, tidak ada response dari server.');
                 }
 
             } catch (error) {
                 hideTyping();
-                addMessage('ai', `Error: ${error.message}`);
+                addMessage('ai', `❌ Error: ${error.message}`);
                 console.error('Error:', error);
             } finally {
                 // Re-enable input
                 chatInput.disabled = false;
-                sendButton.disabled = false;
-                chatInput.focus();
+                document.getElementById('sendButton').disabled = false;
+                chatInput.setFocus();
             }
         }
 
-        // Add welcome message
-        window.addEventListener('load', function() {
-            setTimeout(() => {
-                addMessage('ai', 
-                    `Halo! 👋 Saya DeepSeek AI Assistant. Saya siap membantu Anda dengan:\n\n` +
-                    `💻 **Pemrograman & Coding**\n` +
-                    `🚀 **Project Planning & Structure**\n` +
-                    `🔧 **Debugging & Problem Solving**\n` +
-                    `📚 **Learning & Explanations**\n\n` +
-                    `Silakan tanyakan apa saja! Contoh: "Buatkan function JavaScript untuk validasi email" atau "Rencanakan project React todo app"`
-                );
-            }, 1000);
-        });
+        function quickAction(action) {
+            const prompts = {
+                fixError: "Saya punya error code berikut:\n\n[Paste error dan code di sini]\n\nTolong analisis dan perbaiki error tersebut, berikan penjelasan apa yang salah dan bagaimana cara memperbaikinya.",
+                explainCode: "Jelaskan kode berikut:\n\n[Paste code di sini]\n\nBerikan penjelasan detail tentang apa yang kode ini lakukan, bagaimana cara kerjanya, dan potensi improvement.",
+                optimize: "Optimalkan kode berikut untuk performance dan best practices:\n\n[Paste code di sini]\n\nBerikan versi optimized dan jelaskan perubahan yang dilakukan.",
+                generate: "Buatkan code untuk: [Jelaskan requirement di sini]\n\nGunakan best practices dan berikan dokumentasi."
+            };
+            
+            const chatInput = document.getElementById('chatInput');
+            chatInput.value = prompts[action];
+            chatInput.setFocus();
+        }
+
+        // Advanced actions modal (bisa dikembangkan nanti)
+        async function showAdvancedActions() {
+            const modal = document.createElement('ion-modal');
+            modal.component = 'advanced-actions';
+            await document.querySelector('ion-app').appendChild(modal);
+            await modal.present();
+        }
     </script>
 </body>
 </html>
